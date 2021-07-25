@@ -22,8 +22,8 @@ CREATE TABLE employee_role (
 
 );
 
-DROP TABLE IF EXISTS employees;
-CREATE TABLE employees (
+DROP TABLE IF EXISTS employee;
+CREATE TABLE employee (
     id INT NOT NULL AUTO_INCREMENT,
     first_name VARCHAR(30),
     last_name VARCHAR(30),

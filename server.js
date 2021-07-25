@@ -133,10 +133,6 @@ async function promptForRole() {
 
 async function storeRole(roleObj) {
   let { title, salary, department } = roleObj;
-  // console.log('The salary is:', salary);
-  // var title = roleObj.title;
-  // var salary = roleObj.salary;
-  // var department = roleObj.department;
 
   var department_id = await getDepartmentID(department);
 
@@ -153,6 +149,8 @@ async function storeRole(roleObj) {
   });
 }
 
+// Used by the storeRole function
+// Given a department name, returns its associated department id
 function getDepartmentID(department) {
   return new Promise((resolve, reject) => {
     var queryForDeptId = `SELECT id FROM department WHERE department.department_name = "${department}";`;
@@ -164,6 +162,7 @@ function getDepartmentID(department) {
   });
 }
 
+// Gets an array of department names so that the promptForRole function can use it.
 function getDepartmentNames() {
   var choices = [];
   return new Promise((resolve, reject) => {
@@ -173,6 +172,51 @@ function getDepartmentNames() {
       }
       resolve(choices);
     });
+  });
+}
+
+function promptForEmployee() {
+  return new Promise((resolve, reject) => {
+    inquirer
+      .prompt([
+        {
+          name: 'first_name',
+          message: 'What is the first name of the employee?',
+          inputType: 'input',
+        },
+        {
+          name: 'last_name',
+          message: 'What is the last name of the employee?',
+          inputType: 'input',
+        },
+        {
+          name: 'role_id',
+          message: 'What is the role id of the employee?',
+          inputType: 'input',
+        },
+        {
+          name: 'manager_id',
+          message: "What is the id of the employee's manager?",
+          inputType: 'input',
+        },
+      ])
+      .then((answer) => {
+        resolve(answer);
+      });
+  });
+}
+
+function storeEmployee(employee) {
+  var { first_name, last_name, role_id, manager_id } = employee;
+
+  var query = `INSERT INTO employee( first_name, last_name, role_id, manager_id)
+  VALUES ("${first_name}", "${last_name}", ${role_id}, ${manager_id} )`;
+  db.query(query, function (err, results) {
+    console.log(`Added ${first_name} ${last_name} to the database.`);
+  });
+
+  db.query('SELECT * FROM employee', function (err, results) {
+    console.log(results);
   });
 }
 
@@ -188,6 +232,9 @@ async function init() {
     case 'Add role':
       answer = await promptForRole();
       storeRole(answer);
+    case 'Add employee':
+      answer = await promptForEmployee();
+      storeEmployee(answer);
   }
   // }
 }
