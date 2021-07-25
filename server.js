@@ -26,9 +26,9 @@ const db = mysql.createConnection(
 //   }
 // );
 
-db.query('SELECT * FROM department', function (err, results) {
-  console.log(results);
-});
+// db.query('SELECT * FROM department', function (err, results) {
+//   console.log(results);
+// });
 
 // Default response for any other request (Not Found)
 app.use((req, res) => {
@@ -36,7 +36,7 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  // console.log(`Server running on port ${PORT}`);
 });
 
 ///////////////////////////////Inquirer Prompts///////////////////////////////////
@@ -74,28 +74,67 @@ function promptForDepartment() {
 }
 
 function storeDepartment(department_name) {
-  console.log(department_name);
-
   let query = `INSERT INTO department (department_name)
   VALUES ("${department_name}" );`;
 
   db.query(query, function (err, results) {
-    console.log(results);
+    console.log(`Added ${department_name} to the database`);
   });
+}
 
-  console.log(`Added ${department_name} to the database`);
+async function promptForRole() {
+  var choices = await getDepartments();
+  console.log(choices);
+
+  return new Promise((resolve, reject) => {
+    inquirer
+      .prompt([
+        {
+          name: 'role_name',
+          message: 'What is the name of the role?',
+          inputType: 'input',
+        },
+        {
+          name: 'salary',
+          message: 'What is the salary of the role?',
+          inputType: 'input',
+        },
+        {
+          type: 'list',
+          name: 'department',
+          message: 'Which department does the role belong to?',
+          choices: choices,
+        },
+      ])
+      .then((answer) => {
+        resolve(answer);
+      });
+  });
+}
+
+function getDepartments() {
+  var choices = [];
+  return new Promise((resolve, reject) => {
+    db.query('SELECT * FROM department', function (err, results) {
+      for (let each of results) {
+        choices.push(each.department_name);
+      }
+      resolve(choices);
+    });
+  });
 }
 
 async function init() {
   var done = false;
-
+  var answer;
   // while (!done) {
   var task = await initialPrompt();
-  console.log(task);
   switch (task.newQuery) {
     case 'Add department':
-      const answer = await promptForDepartment();
+      answer = await promptForDepartment();
       storeDepartment(answer.department_name);
+    case 'Add role':
+      answer = await promptForRole();
   }
   // }
 }
