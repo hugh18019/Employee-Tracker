@@ -19,9 +19,9 @@ const db = mysql.createConnection(
 );
 
 // Query database
-db.query('SELECT * FROM department', function (err, results) {
-  console.log(results);
-});
+// db.query('SELECT * FROM department', function (err, results) {
+//   console.log(results);
+// });
 
 // Default response for any other request (Not Found)
 app.use((req, res) => {
@@ -31,3 +31,23 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+///////////////////////////////Inquirer Prompts///////////////////////////////////
+function firstPrompt() {
+  return new Promise((resolve, reject) => {
+    inquirer
+      .prompt([
+        {
+          type: 'list',
+          name: 'newQuery',
+          message: 'What would you like to do?',
+          choices: ['Add department', 'Add role', 'Add employee'],
+        },
+      ])
+      .then((answer) => {
+        resolve(answer);
+      });
+  });
+}
+
+firstPrompt();
