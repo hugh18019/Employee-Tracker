@@ -3,14 +3,14 @@ CREATE DATABASE employee_db;
 
 USE employee_db;
 
-
+DROP TABLE IF EXISTS department;
 CREATE TABLE department (
-    id INT NOT NULL,
+    id INT NOT NULL AUTO_INCREMENT,
     department_name VARCHAR(30),
     PRIMARY KEY (id)
 );
 
-
+DROP TABLE IF EXISTS employee_role;
 CREATE TABLE employee_role (
     id INT NOT NULL,
     title VARCHAR(30),
@@ -22,7 +22,7 @@ CREATE TABLE employee_role (
 
 );
 
-
+DROP TABLE IF EXISTS employees;
 CREATE TABLE employees (
     id INT NOT NULL,
     first_name VARCHAR(30),

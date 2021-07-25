@@ -19,9 +19,16 @@ const db = mysql.createConnection(
 );
 
 // Query database
-// db.query('SELECT * FROM department', function (err, results) {
-//   console.log(results);
-// });
+// db.query(
+//   'INSERT INTO department (id, department_name) VALUES (6, "Service");',
+//   function (err, results) {
+//     console.log(results);
+//   }
+// );
+
+db.query('SELECT * FROM department', function (err, results) {
+  console.log(results);
+});
 
 // Default response for any other request (Not Found)
 app.use((req, res) => {
@@ -33,7 +40,7 @@ app.listen(PORT, () => {
 });
 
 ///////////////////////////////Inquirer Prompts///////////////////////////////////
-function firstPrompt() {
+function initialPrompt() {
   return new Promise((resolve, reject) => {
     inquirer
       .prompt([
@@ -41,7 +48,7 @@ function firstPrompt() {
           type: 'list',
           name: 'newQuery',
           message: 'What would you like to do?',
-          choices: ['Add department', 'Add role', 'Add employee'],
+          choices: ['Add department', 'Add role', 'Add employee', 'Quit'],
         },
       ])
       .then((answer) => {
@@ -50,4 +57,47 @@ function firstPrompt() {
   });
 }
 
-firstPrompt();
+function promptForDepartment() {
+  return new Promise((resolve, reject) => {
+    inquirer
+      .prompt([
+        {
+          name: 'department_name',
+          message: 'What is the name of the department?',
+          inputType: 'input',
+        },
+      ])
+      .then((answer) => {
+        resolve(answer);
+      });
+  });
+}
+
+function storeDepartment(department_name) {
+  console.log(department_name);
+
+  let query = `INSERT INTO department (department_name)
+  VALUES ("${department_name}" );`;
+
+  db.query(query, function (err, results) {
+    console.log(results);
+  });
+
+  console.log(`Added ${department_name} to the database`);
+}
+
+async function init() {
+  var done = false;
+
+  // while (!done) {
+  var task = await initialPrompt();
+  console.log(task);
+  switch (task.newQuery) {
+    case 'Add department':
+      const answer = await promptForDepartment();
+      storeDepartment(answer.department_name);
+  }
+  // }
+}
+
+init();
