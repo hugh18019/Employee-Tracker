@@ -1,8 +1,7 @@
 const express = require('express');
 const mysql = require('mysql2');
 const inquirer = require('inquirer');
-// const { resolve } = require('node:path');
-
+var process = require('process');
 const PORT = process.env.PORT || 3001;
 const app = express();
 
@@ -66,7 +65,14 @@ function initialPrompt() {
           type: 'list',
           name: 'newQuery',
           message: 'What would you like to do?',
-          choices: ['Add department', 'Add role', 'Add employee', 'Quit'],
+          choices: [
+            'View all departments',
+            'Add department',
+            'Add role',
+            'Add employee',
+            'Add manager',
+            'Quit',
+          ],
         },
       ])
       .then((answer) => {
@@ -220,23 +226,42 @@ function storeEmployee(employee) {
   });
 }
 
+function viewAllDepartments() {
+  return new Promise((resolve, reject) => {
+    db.query('SELECT * FROM department', function (err, results) {
+      console.log(results);
+      resolve(results);
+    });
+  });
+}
+
 async function init() {
   var done = false;
   var answer;
-  // while (!done) {
-  var task = await initialPrompt();
-  switch (task.newQuery) {
-    case 'Add department':
-      answer = await promptForDepartment();
-      storeDepartment(answer.department_name);
-    case 'Add role':
-      answer = await promptForRole();
-      storeRole(answer);
-    case 'Add employee':
-      answer = await promptForEmployee();
-      storeEmployee(answer);
+  while (!done) {
+    var task = await initialPrompt();
+    switch (task.newQuery) {
+      case 'Add department':
+        answer = await promptForDepartment();
+        storeDepartment(answer.department_name);
+        break;
+      case 'Add role':
+        answer = await promptForRole();
+        storeRole(answer);
+        break;
+      case 'Add employee':
+        answer = await promptForEmployee();
+        storeEmployee(answer);
+        break;
+      case 'View all departments':
+        await viewAllDepartments();
+        break;
+      case 'Quit':
+        done = true;
+        break;
+    }
   }
-  // }
+  process.exit(0);
 }
 
 init();
