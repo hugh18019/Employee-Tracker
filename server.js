@@ -67,10 +67,12 @@ function initialPrompt() {
           message: 'What would you like to do?',
           choices: [
             'View all departments',
+            'View all roles',
+            'View all employees',
             'Add department',
             'Add role',
             'Add employee',
-            'Add manager',
+            'Update an employee role',
             'Quit',
           ],
         },
@@ -235,12 +237,39 @@ function viewAllDepartments() {
   });
 }
 
+function viewAllRoles() {
+  return new Promise((resolve, reject) => {
+    db.query('SELECT * FROM employee_role', function (err, results) {
+      console.log(results);
+      resolve(results);
+    });
+  });
+}
+
+function viewAllEmployees() {
+  return new Promise((resolve, reject) => {
+    db.query('SELECT * FROM employee', function (err, results) {
+      console.log(results);
+      resolve(results);
+    });
+  });
+}
+
 async function init() {
   var done = false;
   var answer;
   while (!done) {
     var task = await initialPrompt();
     switch (task.newQuery) {
+      case 'View all departments':
+        await viewAllDepartments();
+        break;
+      case 'View all roles':
+        await viewAllRoles();
+        break;
+      case 'View all employees':
+        await viewAllEmployees();
+        break;
       case 'Add department':
         answer = await promptForDepartment();
         storeDepartment(answer.department_name);
@@ -253,9 +282,7 @@ async function init() {
         answer = await promptForEmployee();
         storeEmployee(answer);
         break;
-      case 'View all departments':
-        await viewAllDepartments();
-        break;
+
       case 'Quit':
         done = true;
         break;
