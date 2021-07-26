@@ -236,7 +236,7 @@ async function storeEmployee(employee) {
   var role_id;
   var manager_id;
 
-  // Use the role and manager variables to get role_id and manager_id
+  // Use role name to get role_id
   await db
     .promise()
     .query(`SELECT id FROM employee_role WHERE title = "${role}";`)
@@ -246,28 +246,36 @@ async function storeEmployee(employee) {
       console.log(role_id);
     })
     .catch(console.log);
-  // .then(() => db.end());
 
+  // Use manager name to get manager_id
   await db
     .promise()
-    .query(`SELECT role_id FROM employee WHERE last_name = "${manager}";`)
+    .query(`SELECT id FROM employee WHERE last_name = "${manager}";`)
     .then(([rows, fields]) => {
       console.log(rows);
       manager_id = rows[0].id;
       console.log(manager_id);
     })
     .catch(console.log);
-  // .then(() => db.end());
 
-  // var query = `INSERT INTO employee( first_name, last_name, role_id, manager_id)
-  // VALUES ("${first_name}", "${last_name}", ${role_id}, ${manager_id} )`;
-  // db.query(query, function (err, results) {
-  //   console.log(`Added ${first_name} ${last_name} to the database.`);
-  // });
+  var query = `INSERT INTO employee( first_name, last_name, role_id, manager_id)
+  VALUES ("${first_name}", "${last_name}", ${role_id}, ${manager_id} )`;
+  db.query(query, function (err, results) {
+    console.log(`Added ${first_name} ${last_name} to the database.`);
+  });
 
   // db.query('SELECT * FROM employee', function (err, results) {
   //   console.log(results);
+  //   return results;
   // });
+
+  // await db
+  //   .promise()
+  //   .query('SELECT * FROM employee')
+  //   .then(([rows, fields]) => {
+  //     console.log(rows);
+  //   })
+  //   .catch(console.log);
 }
 
 function viewAllDepartments() {
@@ -302,33 +310,26 @@ async function init() {
   var answer;
   while (!done) {
     var task = await initialPrompt();
-    switch (task.newQuery) {
-      case 'View all departments':
-        await viewAllDepartments();
-        break;
-      case 'View all roles':
-        await viewAllRoles();
-        break;
-      case 'View all employees':
-        await viewAllEmployees();
-        break;
-      case 'Add department':
-        answer = await promptForDepartment();
-        storeDepartment(answer.department_name);
-        break;
-      case 'Add role':
-        answer = await promptForRole();
-        storeRole(answer);
-        break;
-      case 'Add employee':
-        answer = await promptForEmployee();
-        await storeEmployee(answer);
-        break;
-      case 'Update an employee role':
-        await updateEmployeeRole();
-      case 'Quit':
-        done = true;
-        break;
+    if (task.newQuery == 'View all departments') {
+      await viewAllDepartments();
+    } else if (task.newQuery == 'View all roles') {
+      await viewAllRoles();
+    } else if (task.newQuery == 'View all employees') {
+      await viewAllRoles();
+    } else if (task.newQuery == 'Add department') {
+      answer = await promptForDepartment();
+      storeDepartment(answer.department_name);
+    } else if (task.newQuery == 'Add role') {
+      answer = await promptForRole();
+      storeRole(answer);
+    } else if (task.newQuery == 'Add employee') {
+      answer = await promptForEmployee();
+      await storeEmployee(answer);
+      await viewAllEmployees();
+    } else if (task.newQuery == 'Update an employee role') {
+      await updateEmployeeRole();
+    } else if (task.newQuery == 'Quit') {
+      done = true;
     }
   }
   process.exit(0);
