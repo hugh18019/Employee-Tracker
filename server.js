@@ -186,6 +186,7 @@ function getDepartmentNames() {
   });
 }
 
+// Prompts the user to enter a new employee
 async function promptForEmployee() {
   var roles = await viewAllRoles();
   var roleList = [];
@@ -231,6 +232,7 @@ async function promptForEmployee() {
   });
 }
 
+// Stores an employee in the database
 async function storeEmployee(employee) {
   var { first_name, last_name, role, manager } = employee;
   var role_id;
@@ -278,6 +280,80 @@ async function storeEmployee(employee) {
   //   .catch(console.log);
 }
 
+async function promptUpdateEmployeeRole() {
+  var employees = await viewAllEmployees();
+  var employeeList = [];
+  for (let each of employees) {
+    employeeList.push(each.last_name);
+  }
+
+  var roles = await viewAllRoles();
+  var roleList = [];
+  for (let each of roles) {
+    roleList.push(each.title);
+  }
+
+  return new Promise((resolve, reject) => {
+    inquirer
+      .prompt([
+        {
+          type: 'list',
+          name: 'employee',
+          messeage: "Which employee's role do you want to update?",
+          choices: employeeList,
+        },
+        {
+          type: 'list',
+          name: 'newRole',
+          message: 'Which role do you want to assign the selected employee?',
+          choices: roleList,
+        },
+      ])
+      .then((answer) => {
+        resolve(answer);
+      });
+  });
+}
+
+async function updateEmployeeRole(updateInfo) {
+  var { employee, newRole } = updateInfo;
+  var employeeID;
+  var newRoleID;
+
+  // Use employee to get employee_id
+  await db
+    .promise()
+    .query(`SELECT id FROM employee WHERE last_name = "${employee}";`)
+    .then(([rows, fields]) => {
+      console.log(rows);
+      employeeID = rows[0].id;
+      console.log(employeeID);
+    })
+    .catch(console.log);
+
+  // Use newRole to get newRoleID
+  await db
+    .promise()
+    .query(`SELECT id FROM employee_role WHERE title = "${newRole}";`)
+    .then(([rows, fields]) => {
+      console.log(rows);
+      newRoleID = rows[0].id;
+      console.log(newRoleID);
+    })
+    .catch(console.log);
+
+  // Update the employee's role given their id
+  await db
+    .promise()
+    .query(
+      `UPDATE employee SET role_id = ${newRoleID} WHERE id = ${employeeID};`
+    );
+  // .then(([rows, fields]) => {
+  //   console.log(rows);
+  // })
+  // .catch(console.log);
+}
+
 function viewAllDepartments() {
   return new Promise((resolve, reject) => {
     db.query('SELECT * FROM department', function (err, results) {
@@ -315,7 +391,7 @@ async function init() {
     } else if (task.newQuery == 'View all roles') {
       await viewAllRoles();
     } else if (task.newQuery == 'View all employees') {
-      await viewAllRoles();
+      await viewAllEmployees();
     } else if (task.newQuery == 'Add department') {
       answer = await promptForDepartment();
       storeDepartment(answer.department_name);
@@ -325,9 +401,11 @@ async function init() {
     } else if (task.newQuery == 'Add employee') {
       answer = await promptForEmployee();
       await storeEmployee(answer);
-      await viewAllEmployees();
+      // await viewAllEmployees();
     } else if (task.newQuery == 'Update an employee role') {
-      await updateEmployeeRole();
+      answer = await promptUpdateEmployeeRole();
+      await updateEmployeeRole(answer);
+      await viewAllEmployees();
     } else if (task.newQuery == 'Quit') {
       done = true;
     }
