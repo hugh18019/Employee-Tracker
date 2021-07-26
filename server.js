@@ -1,5 +1,6 @@
 const express = require('express');
 const mysql = require('mysql2');
+// const bluebird = require('bluebird');
 const inquirer = require('inquirer');
 var process = require('process');
 const PORT = process.env.PORT || 3001;
@@ -8,7 +9,9 @@ const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
-const db = mysql.createConnection(
+let db;
+
+db = mysql.createConnection(
   {
     host: 'localhost',
     user: 'root',
@@ -183,7 +186,19 @@ function getDepartmentNames() {
   });
 }
 
-function promptForEmployee() {
+async function promptForEmployee() {
+  var roles = await viewAllRoles();
+  var roleList = [];
+  for (let each of roles) {
+    roleList.push(each.title);
+  }
+
+  var managers = await viewAllEmployees();
+  var managerList = [];
+  for (let each of managers) {
+    managerList.push(each.last_name);
+  }
+
   return new Promise((resolve, reject) => {
     inquirer
       .prompt([
@@ -198,14 +213,16 @@ function promptForEmployee() {
           inputType: 'input',
         },
         {
-          name: 'role_id',
-          message: 'What is the role id of the employee?',
-          inputType: 'input',
+          type: 'list',
+          name: 'role',
+          message: "What is the employee's role?",
+          choices: roleList,
         },
         {
-          name: 'manager_id',
-          message: "What is the id of the employee's manager?",
-          inputType: 'input',
+          type: 'list',
+          name: 'manager',
+          message: "Who is the employee's manager?",
+          choices: managerList,
         },
       ])
       .then((answer) => {
@@ -214,18 +231,43 @@ function promptForEmployee() {
   });
 }
 
-function storeEmployee(employee) {
-  var { first_name, last_name, role_id, manager_id } = employee;
+async function storeEmployee(employee) {
+  var { first_name, last_name, role, manager } = employee;
+  var role_id;
+  var manager_id;
 
-  var query = `INSERT INTO employee( first_name, last_name, role_id, manager_id)
-  VALUES ("${first_name}", "${last_name}", ${role_id}, ${manager_id} )`;
-  db.query(query, function (err, results) {
-    console.log(`Added ${first_name} ${last_name} to the database.`);
-  });
+  // Use the role and manager variables to get role_id and manager_id
+  await db
+    .promise()
+    .query(`SELECT id FROM employee_role WHERE title = "${role}";`)
+    .then(([rows, fields]) => {
+      console.log(rows);
+      role_id = rows[0].id;
+      console.log(role_id);
+    })
+    .catch(console.log);
+  // .then(() => db.end());
 
-  db.query('SELECT * FROM employee', function (err, results) {
-    console.log(results);
-  });
+  await db
+    .promise()
+    .query(`SELECT role_id FROM employee WHERE last_name = "${manager}";`)
+    .then(([rows, fields]) => {
+      console.log(rows);
+      manager_id = rows[0].id;
+      console.log(manager_id);
+    })
+    .catch(console.log);
+  // .then(() => db.end());
+
+  // var query = `INSERT INTO employee( first_name, last_name, role_id, manager_id)
+  // VALUES ("${first_name}", "${last_name}", ${role_id}, ${manager_id} )`;
+  // db.query(query, function (err, results) {
+  //   console.log(`Added ${first_name} ${last_name} to the database.`);
+  // });
+
+  // db.query('SELECT * FROM employee', function (err, results) {
+  //   console.log(results);
+  // });
 }
 
 function viewAllDepartments() {
@@ -280,9 +322,10 @@ async function init() {
         break;
       case 'Add employee':
         answer = await promptForEmployee();
-        storeEmployee(answer);
+        await storeEmployee(answer);
         break;
-
+      case 'Update an employee role':
+        await updateEmployeeRole();
       case 'Quit':
         done = true;
         break;

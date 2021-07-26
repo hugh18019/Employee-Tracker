@@ -21,6 +21,7 @@
   "dependencies": {
     "express": "^4.17.1",
     "inquirer": "^8.1.2",
-    "mysql2": "^2.2.5"
+    "mysql2": "^2.2.5",
+    "mysql2-bluebird": "0.0.4"
   }
 }
