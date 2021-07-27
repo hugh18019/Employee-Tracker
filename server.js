@@ -3,6 +3,10 @@ const mysql = require('mysql2');
 const cTable = require('console.table');
 const inquirer = require('inquirer');
 var process = require('process');
+const e = require('express');
+const { resolve } = require('path');
+const { query } = require('express');
+const { table } = require('console');
 const PORT = process.env.PORT || 3001;
 const app = express();
 
@@ -76,6 +80,7 @@ function initialPrompt() {
             'Add role',
             'Add employee',
             'Update an employee role',
+            'View employee by manager',
             'Quit',
           ],
         },
@@ -149,14 +154,13 @@ async function storeRole(roleObj) {
 
   // console.log('department_id is: ', department_id[0].id);
 
-  var query = `INSERT INTO employee_role (title, salary, department_id)
-  VALUES ("${title}", ${salary}, ${department_id[0].id} );`;
-  db.query(query, function (err, results) {
-    console.log(`Added ${title} to the database.`);
-  });
-
-  db.query('SELECT * FROM employee_role', function (err, results) {
-    console.log(results);
+  return new Promise((resolve, reject) => {
+    var query = `INSERT INTO employee_role (title, salary, department_id)
+    VALUES ("${title}", ${salary}, ${department_id[0].id} );`;
+    db.query(query, function (err, results) {
+      console.log(`Added ${title} to the database.`);
+      resolve(results);
+    });
   });
 }
 
@@ -188,13 +192,13 @@ function getDepartmentNames() {
 
 // Prompts the user to enter a new employee
 async function promptForEmployee() {
-  var roles = await viewAllRoles();
+  var roles = await getTable('employee_role');
   var roleList = [];
   for (let each of roles) {
     roleList.push(each.title);
   }
 
-  var managers = await viewAllEmployees();
+  var managers = await getTable('employee');
   var managerList = [];
   for (let each of managers) {
     managerList.push(each.last_name);
@@ -265,29 +269,16 @@ async function storeEmployee(employee) {
   db.query(query, function (err, results) {
     console.log(`Added ${first_name} ${last_name} to the database.`);
   });
-
-  // db.query('SELECT * FROM employee', function (err, results) {
-  //   console.log(results);
-  //   return results;
-  // });
-
-  // await db
-  //   .promise()
-  //   .query('SELECT * FROM employee')
-  //   .then(([rows, fields]) => {
-  //     console.log(rows);
-  //   })
-  //   .catch(console.log);
 }
 
 async function promptUpdateEmployeeRole() {
-  var employees = await viewAllEmployees();
+  var employees = await getTable('employee');
   var employeeList = [];
   for (let each of employees) {
     employeeList.push(each.last_name);
   }
 
-  var roles = await viewAllRoles();
+  var roles = await getTable('employee_role');
   var roleList = [];
   for (let each of roles) {
     roleList.push(each.title);
@@ -348,21 +339,88 @@ async function updateEmployeeRole(updateInfo) {
     .query(
       `UPDATE employee SET role_id = ${newRoleID} WHERE id = ${employeeID};`
     );
-  // .then(([rows, fields]) => {
-  //   console.log(rows);
-  // })
-  // .catch(console.log);
 }
 
-// Takes the name of a table as argument and prints the table using console.table
+// Prints the table using console.table
+// tableName is the name of the table to be printed
 async function viewTable(tableName) {
   await db
     .promise()
     .query(`SELECT * FROM ??`, `${tableName}`)
     .then(([rows, fields]) => {
       console.table(rows);
+      return rows;
     })
     .catch(console.log);
+}
+
+// Returns a table in the database as an array
+// tableName is the name of the table to be retrieved
+async function getTable(tableName) {
+  return new Promise((resolve, reject) => {
+    var query = `SELECT * FROM ??`;
+    db.query(query, `${tableName}`, function (err, results) {
+      resolve(results);
+    });
+  });
+}
+
+async function getManagerIDByLastName(manager_ln) {
+  // console.log('manager_ln', manager_ln);
+
+  return new Promise((resolve, reject) => {
+    var query = `select id from employee where last_name = '${manager_ln}';`;
+    db.query(query, function (err, results) {
+      // console.log('manager_id', results);
+      resolve(results[0].id);
+    });
+  });
+}
+
+async function viewEmployeeByManager(manager_ln) {
+  // console.log('manager_ln', manager_ln);
+  var manager_id = await getManagerIDByLastName(manager_ln.manager_ln);
+  // console.log('manager_id', `${manager_id}`);
+  var query = `select e.first_name, e.last_name
+  from employee e
+  inner join employee_role r on e.role_id = r.id
+  inner join department d on r.department_id = d.id
+  where e.manager_id = ${manager_id};
+  `;
+
+  await db
+    .promise()
+    .query(query)
+    .then(([rows, fields]) => {
+      console.table(rows);
+    })
+    .catch(console.log);
+}
+
+async function promptForManagerLastName() {
+  var employees = await getTable('employee');
+
+  // console.log(employees);
+
+  var employeeList = [];
+  for (let each of employees) {
+    employeeList.push(each.last_name);
+  }
+
+  return new Promise((resolve, reject) => {
+    inquirer
+      .prompt([
+        {
+          type: 'list',
+          name: 'manager_ln',
+          message: 'What is the last name of the manager?',
+          choices: employeeList,
+        },
+      ])
+      .then((answer) => {
+        resolve(answer);
+      });
+  });
 }
 
 async function init() {
@@ -381,15 +439,17 @@ async function init() {
       storeDepartment(answer.department_name);
     } else if (task.newQuery == 'Add role') {
       answer = await promptForRole();
-      storeRole(answer);
+      await storeRole(answer);
     } else if (task.newQuery == 'Add employee') {
       answer = await promptForEmployee();
       await storeEmployee(answer);
-      // await viewAllEmployees();
     } else if (task.newQuery == 'Update an employee role') {
       answer = await promptUpdateEmployeeRole();
       await updateEmployeeRole(answer);
-      await viewAllEmployees();
+      await viewTable('employee');
+    } else if (task.newQuery == 'View employee by manager') {
+      answer = await promptForManagerLastName();
+      await viewEmployeeByManager(answer);
     } else if (task.newQuery == 'Quit') {
       done = true;
     }
