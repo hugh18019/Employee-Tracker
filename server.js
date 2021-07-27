@@ -1,6 +1,6 @@
 const express = require('express');
 const mysql = require('mysql2');
-// const bluebird = require('bluebird');
+const cTable = require('console.table');
 const inquirer = require('inquirer');
 var process = require('process');
 const PORT = process.env.PORT || 3001;
@@ -113,7 +113,7 @@ function storeDepartment(department_name) {
 
 async function promptForRole() {
   var choices = await getDepartmentNames();
-  console.log(choices);
+  // console.log(choices);
 
   return new Promise((resolve, reject) => {
     inquirer
@@ -354,31 +354,15 @@ async function updateEmployeeRole(updateInfo) {
   // .catch(console.log);
 }
 
-function viewAllDepartments() {
-  return new Promise((resolve, reject) => {
-    db.query('SELECT * FROM department', function (err, results) {
-      console.log(results);
-      resolve(results);
-    });
-  });
-}
-
-function viewAllRoles() {
-  return new Promise((resolve, reject) => {
-    db.query('SELECT * FROM employee_role', function (err, results) {
-      console.log(results);
-      resolve(results);
-    });
-  });
-}
-
-function viewAllEmployees() {
-  return new Promise((resolve, reject) => {
-    db.query('SELECT * FROM employee', function (err, results) {
-      console.log(results);
-      resolve(results);
-    });
-  });
+// Takes the name of a table as argument and prints the table using console.table
+async function viewTable(tableName) {
+  await db
+    .promise()
+    .query(`SELECT * FROM ??`, `${tableName}`)
+    .then(([rows, fields]) => {
+      console.table(rows);
+    })
+    .catch(console.log);
 }
 
 async function init() {
@@ -387,11 +371,11 @@ async function init() {
   while (!done) {
     var task = await initialPrompt();
     if (task.newQuery == 'View all departments') {
-      await viewAllDepartments();
+      await viewTable('department');
     } else if (task.newQuery == 'View all roles') {
-      await viewAllRoles();
+      await viewTable('employee_role');
     } else if (task.newQuery == 'View all employees') {
-      await viewAllEmployees();
+      await viewTable('employee');
     } else if (task.newQuery == 'Add department') {
       answer = await promptForDepartment();
       storeDepartment(answer.department_name);
