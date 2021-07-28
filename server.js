@@ -108,11 +108,14 @@ function promptForDepartment() {
 }
 
 function storeDepartment(department_name) {
-  let query = `INSERT INTO department (department_name)
-  VALUES ("${department_name}" );`;
+  return new Promise((resolve, reject) => {
+    let query = `INSERT INTO department (department_name)
+    VALUES ("${department_name}" );`;
 
-  db.query(query, function (err, results) {
-    console.log(`Added ${department_name} to the database`);
+    db.query(query, function (err, results) {
+      resolve(results);
+      console.log(`Added ${department_name} to the database`);
+    });
   });
 }
 
